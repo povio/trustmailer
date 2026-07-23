@@ -2,6 +2,12 @@
   "name": "trustmailer",
   "version": "0.1.0",
   "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
+  "homepage": "https://nesgarbo.com/packages",
+  "author": "Nestor Garcia <admin@nesgarbo.com> (https://nesgarbo.com)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nesgarbo/trustmailer.git"
+  },
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT OR Apache-2.0",

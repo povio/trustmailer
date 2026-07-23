@@ -6,6 +6,22 @@ export declare class Transporter {
   get name(): string
 }
 
+/** Mirrors nodemailer's `attachments: [{ filename, content, contentType, cid }]` shape. */
+export interface AttachmentInput {
+  filename?: string
+  /**
+   * Attachment bytes, given either as a `Buffer` or as a base64-encoded string
+   * (equivalent to nodemailer's `content` + `encoding: "base64"`).
+   */
+  content: Buffer | string
+  contentType?: string
+  /**
+   * Content-ID for referencing this attachment as an embedded image via `cid:` in
+   * HTML. When set, the attachment is sent with an `inline` disposition.
+   */
+  cid?: string
+}
+
 export declare function createTransport(options: TransportOptions): Transporter
 
 export interface DkimOptions {
@@ -23,6 +39,13 @@ export interface MailOptions {
   subject?: string
   text?: string
   html?: string
+  /**
+   * Explicit `Message-ID` header value. When omitted, one is auto-generated before
+   * sending and reported back on `SentInfoJs.message_id`, mirroring nodemailer's
+   * `info.messageId` behavior.
+   */
+  messageId?: string
+  attachments?: Array<AttachmentInput>
 }
 
 export interface SentInfoJs {
@@ -30,6 +53,24 @@ export interface SentInfoJs {
   accepted: Array<string>
   rejected: Array<string>
   response?: string
+}
+
+export interface SesOptions {
+  region: string
+  accessKeyId: string
+  secretAccessKey: string
+  sessionToken?: string
+  /**
+   * Overrides the base URL the `SendEmail` request is POSTed to (scheme + host, no
+   * path) — for a VPC PrivateLink endpoint or pointing tests at a mock server.
+   */
+  endpointOverride?: string
+  /**
+   * Hostname used only when generating a `Message-ID` for a message that doesn't
+   * already have one. Defaults to the sending domain from the message's `From`
+   * address if unset.
+   */
+  messageIdHostname?: string
 }
 
 export interface SmtpAuthOptions {
@@ -40,6 +81,8 @@ export interface SmtpAuthOptions {
 export interface TransportOptions {
   /** Signs every outgoing message with DKIM before handing it to the underlying transport. */
   dkim?: DkimOptions
+  /** Send over Amazon SES's HTTPS API instead of SMTP. */
+  ses?: SesOptions
   /** Well-known service name, e.g. `"gmail"` — looks up host/port/secure automatically. */
   service?: string
   host?: string
@@ -48,7 +91,11 @@ export interface TransportOptions {
   auth?: SmtpAuthOptions
   /** Use the local `sendmail` binary instead of SMTP. */
   sendmail?: boolean
-  /** Path to the sendmail binary; defaults to `/usr/sbin/sendmail`. */
+  /**
+   * Path to the sendmail binary; defaults to `/usr/sbin/sendmail`. This is trusted,
+   * operator-supplied config, not attacker-controllable input — it should generally
+   * be an absolute path, since a relative value falls back to a `PATH` lookup.
+   */
   path?: string
   /** Render messages instead of sending them (returns the raw MIME as `response`). */
   streamTransport?: boolean

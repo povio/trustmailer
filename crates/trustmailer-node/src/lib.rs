@@ -44,9 +44,26 @@ pub struct DkimOptions {
 }
 
 #[napi(object)]
+pub struct SesOptions {
+    pub region: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub session_token: Option<String>,
+    /// Overrides the base URL the `SendEmail` request is POSTed to (scheme + host, no
+    /// path) — for a VPC PrivateLink endpoint or pointing tests at a mock server.
+    pub endpoint_override: Option<String>,
+    /// Hostname used only when generating a `Message-ID` for a message that doesn't
+    /// already have one. Defaults to the sending domain from the message's `From`
+    /// address if unset.
+    pub message_id_hostname: Option<String>,
+}
+
+#[napi(object)]
 pub struct TransportOptions {
     /// Signs every outgoing message with DKIM before handing it to the underlying transport.
     pub dkim: Option<DkimOptions>,
+    /// Send over Amazon SES's HTTPS API instead of SMTP.
+    pub ses: Option<SesOptions>,
     /// Well-known service name, e.g. `"gmail"` — looks up host/port/secure automatically.
     pub service: Option<String>,
     pub host: Option<String>,
@@ -257,6 +274,25 @@ pub fn create_transport(options: TransportOptions) -> Result<Transporter> {
         }
         return Ok(Transporter {
             inner: finalize(t, options.dkim)?,
+        });
+    }
+    if let Some(ses) = options.ses {
+        let mut config = trustmailer_ses::SesConfig::new(
+            ses.region,
+            ses.access_key_id,
+            ses.secret_access_key,
+        );
+        if let Some(token) = ses.session_token {
+            config = config.with_session_token(token);
+        }
+        if let Some(endpoint) = ses.endpoint_override {
+            config = config.with_endpoint_override(endpoint);
+        }
+        if let Some(hostname) = ses.message_id_hostname {
+            config = config.with_message_id_hostname(hostname);
+        }
+        return Ok(Transporter {
+            inner: finalize(trustmailer_ses::SesTransport::new(config), options.dkim)?,
         });
     }
 

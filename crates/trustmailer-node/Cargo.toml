@@ -20,6 +20,7 @@ trustmailer-sendmail = { workspace = true }
 trustmailer-stream = { workspace = true }
 trustmailer-json = { workspace = true }
 trustmailer-dkim = { workspace = true }
+trustmailer-ses = { workspace = true }
 napi = { version = "3", default-features = false, features = ["napi4", "async", "tokio_rt"] }
 napi-derive = "3"
 
