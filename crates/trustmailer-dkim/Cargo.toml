@@ -1,0 +1,25 @@
+[package]
+name = "trustmailer-dkim"
+description = "DKIM signing for trustmailer (RSA-SHA256, relaxed/relaxed canonicalization, RFC 6376)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+trustmailer-core = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+sha2 = "0.11"
+rsa = "0.9"
+
+# spawn_blocking for offloading RSA signing (see SigningTransport::sign); wasm32 has no
+# blocking thread pool and signs inline instead, so this is native-only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1", features = ["rt"] }
+
+[dev-dependencies]
+trustmailer-stream = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt"] }
