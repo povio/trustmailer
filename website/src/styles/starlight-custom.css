@@ -1,0 +1,85 @@
+@import "@fontsource-variable/fraunces/standard.css";
+
+/*
+ * trustmailer docs theme — same tokens as the landing page (src/styles/global.css),
+ * mapped onto Starlight's CSS custom properties. Both `:root` and the light-mode
+ * override are set to the same dark palette on purpose: this brand commits to one
+ * visual identity rather than following the reader's OS/toggle preference.
+ */
+:root,
+:root[data-theme="light"] {
+  --sl-color-white: #f2e9de;
+  --sl-color-gray-1: #ecdfd0;
+  --sl-color-gray-2: #cfc1b1;
+  --sl-color-gray-3: #b8ab9c;
+  --sl-color-gray-4: #8a7c6d;
+  --sl-color-gray-5: #4a3d33;
+  --sl-color-gray-6: #241d17;
+  --sl-color-gray-7: #1d1712;
+  --sl-color-black: #14110e;
+
+  --sl-color-bg: #171310;
+  --sl-color-bg-nav: #1d1712;
+  --sl-color-bg-sidebar: #1d1712;
+  --sl-color-bg-inline-code: #211a15;
+  --sl-color-bg-accent: #f3ce6e;
+
+  --sl-color-text: var(--sl-color-gray-2);
+  --sl-color-text-accent: #e2673f;
+  --sl-color-text-invert: #171310;
+
+  --sl-color-hairline-light: #362b21;
+  --sl-color-hairline: #2a221b;
+  --sl-color-hairline-shade: #14110e;
+  --sl-color-backdrop-overlay: hsla(20, 22%, 6%, 0.72);
+
+  /* accent = rust (primary brand color) */
+  --sl-color-accent-low: #4a2418;
+  --sl-color-accent: #d9522f;
+  --sl-color-accent-high: #f3b7a2;
+
+  /* "note" asides borrow the trust-teal instead of Starlight's default blue */
+  --sl-color-blue-low: #113137;
+  --sl-color-blue: #1e97ac;
+  --sl-color-blue-high: #9fd9e3;
+
+  /* "tip" asides use the seal gold */
+  --sl-color-green-low: #4a3c14;
+  --sl-color-green: #f3ce6e;
+  --sl-color-green-high: #fbe7b6;
+
+  --sl-font: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --sl-font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+
+  /* Wider prose column than Starlight's 45rem default — this is reference
+     documentation with option tables and code blocks, not short-form prose. */
+  --sl-content-width: 62rem;
+}
+
+/* Headings carry the same warm serif as the landing page's display type. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+starlight-toc nav > .top-level > li > a {
+  font-family: "Fraunces Variable", Georgia, "Times New Roman", serif;
+  letter-spacing: -0.01em;
+}
+
+.sl-markdown-content h1 { font-weight: 600; }
+.sl-markdown-content h2 { font-weight: 560; }
+
+/* Sidebar/current-page accents pick up the seal gold rather than reusing the
+   rust accent everywhere, so active-state highlights read distinctly from links. */
+starlight-tabs [aria-selected="true"],
+a[aria-current="page"] {
+  color: var(--sl-color-white);
+}
+
+site-search > button {
+  border-radius: 8px;
+}
+
+::selection {
+  background: color-mix(in srgb, #f3ce6e 35%, transparent);
+}

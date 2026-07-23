@@ -1,0 +1,93 @@
+---
+---
+
+<section id="top" class="hero no-rule">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow">Rust-powered · nodemailer-compatible</p>
+      <h1>nodemailer's model,<br /><em>rebuilt</em> in Rust.</h1>
+      <p class="lede">
+        Same message model, same pluggable transport, same familiar API shape —
+        implemented once in Rust and exposed to native Rust, Node.js/Bun/Deno, Cloudflare
+        Workers, and the browser. One core, four runtimes, no per-target rewrite.
+      </p>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="/docs/">Read the docs</a>
+        <a class="btn btn-ghost" href="https://github.com/nesgarbo/trustmailer">GitHub</a>
+      </div>
+
+      <div class="pill-row">
+        <span class="pill"><span class="dot" style="background:var(--rust-light)"></span>Native Rust</span>
+        <span class="pill"><span class="dot" style="background:var(--teal-light)"></span>Node · Bun · Deno</span>
+        <span class="pill"><span class="dot" style="background:var(--gold)"></span>Cloudflare Workers</span>
+        <span class="pill"><span class="dot" style="background:var(--ink-dim)"></span>Browser / WASM</span>
+      </div>
+    </div>
+
+    <div class="hero-mark" aria-hidden="true">
+      <div class="mark-tile">
+        <img src="/logo-mark.svg" alt="" width="180" height="180" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero { padding-top: 64px; padding-bottom: 56px; }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 48px;
+    align-items: center;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--rust-light);
+  }
+
+  .lede { margin-top: 22px; }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 34px;
+  }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 28px;
+  }
+
+  .mark-tile {
+    aspect-ratio: 1;
+    border-radius: 28px;
+    background: radial-gradient(circle at 30% 20%, var(--bg-card), var(--bg));
+    border: 1px solid var(--rule);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 30px 80px -30px rgba(217, 82, 47, 0.25);
+  }
+
+  .mark-tile img {
+    width: 46%;
+    height: auto;
+    animation: rise 0.7s ease both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 780px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-mark { order: -1; max-width: 220px; margin: 0 auto; }
+  }
+</style>

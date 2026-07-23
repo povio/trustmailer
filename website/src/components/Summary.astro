@@ -1,0 +1,60 @@
+---
+---
+
+<section class="summary">
+  <div class="wrap summary-grid">
+    <p class="lede">
+      Nodemailer is the standard for sending mail from JavaScript, but it only runs where
+      Node runs. trustmailer keeps its exact model and ships it everywhere else too —
+      audited against nodemailer's own security regression tests, then independently
+      re-audited on top of that.
+    </p>
+    <div class="stat-row">
+      <div class="stat"><strong>4</strong><span>runtimes, one core</span></div>
+      <div class="stat"><strong>174</strong><span>tests, 23 suites</span></div>
+      <div class="stat"><strong>2×</strong><span>audited, independently</span></div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .summary {
+    padding: 48px 0 8px;
+  }
+
+  .summary-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .lede { max-width: 46ch; }
+
+  .stat-row {
+    display: flex;
+    gap: 30px;
+  }
+
+  .stat strong {
+    display: block;
+    font-family: var(--display);
+    font-size: 1.9rem;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .stat span {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 780px) {
+    .summary-grid { flex-direction: column; align-items: flex-start; }
+  }
+</style>

@@ -1,0 +1,74 @@
+---
+---
+
+<header class="site-header">
+  <div class="wrap bar">
+    <a href="#top" class="brand">
+      <img src="/logo-mark.svg" alt="" width="28" height="28" />
+      <span>trustmailer</span>
+    </a>
+    <nav>
+      <a href="/docs/">Docs</a>
+      <a href="/docs/security/">Security</a>
+      <a href="https://github.com/nesgarbo/trustmailer" class="gh">GitHub&nbsp;↗</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+  }
+
+  nav a {
+    color: var(--ink-dim);
+    text-decoration: none;
+  }
+
+  nav a:hover { color: var(--ink); }
+
+  nav a.gh {
+    color: var(--ink);
+    border: 1px solid var(--rule);
+    padding: 7px 12px;
+    border-radius: 7px;
+  }
+
+  nav a.gh:hover { border-color: var(--ink-faint); }
+
+  @media (max-width: 640px) {
+    nav a:not(.gh) { display: none; }
+  }
+</style>
