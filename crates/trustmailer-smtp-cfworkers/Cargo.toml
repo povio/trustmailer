@@ -1,0 +1,24 @@
+[package]
+name = "trustmailer-smtp-cfworkers"
+description = "Real SMTP transport for trustmailer inside Cloudflare Workers, over the cloudflare:sockets connect() API — genuine outbound TCP with platform-handled TLS (secureTransport: on/starttls), not an HTTP relay. Only functions inside the Cloudflare Workers runtime (workerd); compiles for wasm32 elsewhere but connect() is unavailable outside workerd."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+trustmailer-core = { workspace = true }
+trustmailer-smtp-protocol = { workspace = true }
+async-trait = { workspace = true }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"

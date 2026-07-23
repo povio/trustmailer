@@ -1,0 +1,28 @@
+[package]
+name = "trustmailer-wasm"
+description = "WASM bindings for trustmailer: browser, Deno, Bun and Cloudflare Workers. No raw SMTP (WASM sandboxes have no TCP sockets) — use the JSON/stream transport to hand off to your own relay, or the SES transport (HTTPS API)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+trustmailer-core = { workspace = true }
+trustmailer-stream = { workspace = true }
+trustmailer-json = { workspace = true }
+trustmailer-ses = { workspace = true }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+serde = { workspace = true }
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+[features]
+default = ["console_error_panic_hook"]
