@@ -5,6 +5,12 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://trustmailer.nesgarbo.com/docs/"><img alt="Documentation" src="https://img.shields.io/badge/docs-trustmailer.nesgarbo.com-1e97ac"></a>
+  <a href="./AUDIT.md"><img alt="Security audit" src="https://img.shields.io/badge/security-independently%20audited%20twice-d9522f"></a>
+  <a href="./LICENSE-MIT"><img alt="License" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-f3ce6e"></a>
+</p>
+
 A [nodemailer](https://nodemailer.com)-compatible mail library, Rust-powered, for every
 runtime: native Rust, Node.js/Bun/Deno (one native addon, no per-runtime rebuild),
 Cloudflare Workers (real SMTP over genuine outbound TCP, not an HTTP relay), and the
@@ -13,6 +19,16 @@ four ways to call it. Built by [nesgarbo](https://nesgarbo.com).
 
 `trust` because it's Rust (and because you shouldn't have to trust a JS mail stack's
 transitive dependency tree with your SMTP credentials).
+
+**📖 Full documentation, in English and Spanish, lives at
+[trustmailer.nesgarbo.com](https://trustmailer.nesgarbo.com/docs/)** — a per-transport
+option reference (SMTP, Sendmail, SES, Stream, JSON, Cloudflare Workers, browser/WASM),
+a `Message`/`Addresses`/`Attachments` guide, an [error reference](https://trustmailer.nesgarbo.com/docs/errors/),
+and a [real, reproducible comparison against nodemailer](https://trustmailer.nesgarbo.com/docs/comparison/)
+— throughput numbers, an output-parity test, and nodemailer's currently-published
+advisories, all backed by scripts in [`benchmarks/`](./benchmarks). This README stays
+intentionally shorter than the docs site; it's the "am I in the right place" overview,
+not the reference.
 
 ## Why
 
@@ -174,6 +190,16 @@ just quietly-wrong data reaching the caller. Fixed by serializing with
 docs-only review or a compile-only check would never surface — it only showed up because
 the actual JSON response was inspected end-to-end against a real `workerd` run.
 
+The fixes above went through a **second, independent audit pass** afterward — specifically
+tasked with re-verifying every fix and looking for what the first pass missed. It found
+three more real issues (a reachable panic in the address parser, a bypassable OAuth2
+credential-leak guard, a STARTTLS regression the first pass's own fix introduced), all now
+fixed and regression-tested. The full, unabridged log of every finding across both
+passes — file:line references, what was fixed, what was deliberately left open and
+why — is public in [`AUDIT.md`](./AUDIT.md). See also
+[trustmailer.nesgarbo.com/docs/security](https://trustmailer.nesgarbo.com/docs/security/)
+for the narrative version.
+
 ### Test coverage
 
 The test suite is substantially ported from **nodemailer's own `test/` directory**
@@ -211,7 +237,7 @@ the architectures line up closely enough, the same expected values:
   `--target` to build and test cleanly.
 
 Run everything with `cargo test --workspace --exclude trustmailer-node --all-features`
-(132 tests across 23 suites as of this writing).
+(174 tests across 23 suites as of this writing).
 
 #### What wasn't ported, and why
 
@@ -373,4 +399,5 @@ wasm-pack build --target web
 
 ## License
 
-MIT OR Apache-2.0
+Dual-licensed under either of [MIT](./LICENSE-MIT) or [Apache License, Version 2.0](./LICENSE-APACHE),
+at your option.
