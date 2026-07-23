@@ -1,0 +1,147 @@
+name: napi-rs build & publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+env:
+  DEBUG: napi:*
+  APP_NAME: trustmailer
+  MACOSX_DEPLOYMENT_TARGET: "10.13"
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: macos-latest
+            target: x86_64-apple-darwin
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+          - host: windows-latest
+            target: aarch64-pc-windows-msvc
+            cross: xwin
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            cross: zig
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross: zig
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: zig
+          - host: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            cross: zig
+    name: build - ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    defaults:
+      run:
+        working-directory: crates/trustmailer-node
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/trustmailer-node
+          key: ${{ matrix.settings.target }}
+
+      - name: Install zig (cross-compile via cargo-zigbuild)
+        if: matrix.settings.cross == 'zig'
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+
+      - name: Install cargo-zigbuild
+        if: matrix.settings.cross == 'zig'
+        run: cargo install cargo-zigbuild --locked
+
+      - name: Install cargo-xwin (Windows ARM64 cross-compile)
+        if: matrix.settings.cross == 'xwin'
+        run: cargo install cargo-xwin --locked
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build (native)
+        if: matrix.settings.cross == ''
+        run: npm run build -- --target ${{ matrix.settings.target }}
+
+      - name: Build (cross-compile)
+        if: matrix.settings.cross != ''
+        run: npm run build -- --target ${{ matrix.settings.target }} --cross-compile
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: crates/trustmailer-node/${{ env.APP_NAME }}.*.node
+          if-no-files-found: error
+
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: crates/trustmailer-node
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: crates/trustmailer-node/artifacts
+
+      - name: Move binaries into per-platform npm packages
+        run: |
+          for f in artifacts/*/*.node; do
+            fname=$(basename "$f")
+            # trustmailer.<platform>.node -> <platform>
+            platform=$(echo "$fname" | sed -E 's/^[^.]+\.(.+)\.node$/\1/')
+            mkdir -p "npm/$platform"
+            cp "$f" "npm/$platform/$fname"
+          done
+          ls -la npm/*/*.node
+
+      - name: Sync versions into platform packages
+        run: npx napi version
+
+      - name: Publish platform packages
+        run: |
+          for d in npm/*/; do
+            (cd "$d" && npm publish --access public --provenance)
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish main package
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

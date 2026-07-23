@@ -1,0 +1,25 @@
+{
+  "name": "trustmailer-darwin-x64",
+  "version": "0.1.0",
+  "cpu": [
+    "x64"
+  ],
+  "main": "trustmailer.darwin-x64.node",
+  "files": [
+    "trustmailer.darwin-x64.node"
+  ],
+  "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
+  "author": "Nestor Garcia <admin@nesgarbo.com> (https://nesgarbo.com)",
+  "homepage": "https://nesgarbo.com/packages",
+  "license": "MIT OR Apache-2.0",
+  "engines": {
+    "node": ">= 16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nesgarbo/trustmailer.git"
+  },
+  "os": [
+    "darwin"
+  ]
+}
