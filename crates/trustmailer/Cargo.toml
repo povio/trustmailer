@@ -1,0 +1,40 @@
+[package]
+name = "trustmailer"
+description = "trustmailer: a Rust-powered, nodemailer-compatible mail library for every runtime. This facade crate targets native Rust; see trustmailer-node and trustmailer-wasm for other runtimes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["smtp", "sendmail", "stream", "json", "dkim", "ses"]
+smtp = ["dep:trustmailer-smtp"]
+sendmail = ["dep:trustmailer-sendmail"]
+ses = ["dep:trustmailer-ses"]
+dkim = ["dep:trustmailer-dkim"]
+stream = ["dep:trustmailer-stream"]
+json = ["dep:trustmailer-json"]
+fs = ["trustmailer-core/fs"]
+http = ["trustmailer-core/http"]
+
+[dependencies]
+trustmailer-core = { workspace = true }
+trustmailer-smtp = { workspace = true, optional = true }
+trustmailer-ses = { workspace = true, optional = true }
+trustmailer-dkim = { workspace = true, optional = true }
+trustmailer-stream = { workspace = true, optional = true }
+trustmailer-json = { workspace = true, optional = true }
+
+# `trustmailer-sendmail` spawns OS processes via `tokio::process`, which has no wasm32
+# support. Keeping it out of the wasm32 dependency graph entirely means the crate-level
+# `compile_error!` guard in `src/lib.rs` is the *first* thing that fails a
+# `--target wasm32-unknown-unknown --features sendmail` build, instead of a confusing
+# error surfacing deep inside `tokio`/`mio` once they discover they can't support the
+# process feature on that target.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+trustmailer-sendmail = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
