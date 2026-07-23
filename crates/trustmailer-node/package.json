@@ -1,8 +1,8 @@
 {
   "name": "trustmailer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
-  "homepage": "https://nesgarbo.com/packages",
+  "homepage": "https://trustmailer.nesgarbo.com",
   "author": "Nestor Garcia <admin@nesgarbo.com> (https://nesgarbo.com)",
   "repository": {
     "type": "git",
@@ -31,14 +31,14 @@
     "node": ">= 16"
   },
   "optionalDependencies": {
-    "trustmailer-darwin-arm64": "0.1.0",
-    "trustmailer-darwin-x64": "0.1.0",
-    "trustmailer-linux-x64-gnu": "0.1.0",
-    "trustmailer-linux-x64-musl": "0.1.0",
-    "trustmailer-linux-arm64-gnu": "0.1.0",
-    "trustmailer-linux-arm64-musl": "0.1.0",
-    "trustmailer-win32-x64-msvc": "0.1.0",
-    "trustmailer-win32-arm64-msvc": "0.1.0"
+    "trustmailer-darwin-arm64": "0.1.1",
+    "trustmailer-darwin-x64": "0.1.1",
+    "trustmailer-linux-x64-gnu": "0.1.1",
+    "trustmailer-linux-x64-musl": "0.1.1",
+    "trustmailer-linux-arm64-gnu": "0.1.1",
+    "trustmailer-linux-arm64-musl": "0.1.1",
+    "trustmailer-win32-x64-msvc": "0.1.1",
+    "trustmailer-win32-arm64-msvc": "0.1.1"
   },
   "scripts": {
     "build": "napi build --platform --release",
