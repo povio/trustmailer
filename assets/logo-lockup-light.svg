@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 160" width="560" height="160" role="img" aria-labelledby="trustmailerLockupTitle">
+  <title id="trustmailerLockupTitle">trustmailer</title>
+  <defs>
+    <linearGradient id="rustGrad" x1="24" y1="38" x2="102" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E2593C"/>
+      <stop offset="1" stop-color="#AE3A22"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="102" y1="38" x2="180" y2="168" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1E97AC"/>
+      <stop offset="1" stop-color="#0E5F70"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(10,15) scale(0.65)">
+    <polygon points="24,168 70,38 102,126" fill="url(#rustGrad)"/>
+    <polygon points="102,126 134,38 180,168" fill="url(#tealGrad)"/>
+    <polygon points="82,78 122,78 122,104 102,132 82,104"
+             fill="#F3CE6E" stroke="#2A211A" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M90,101 L98,111 L116,85" fill="none" stroke="#2A211A" stroke-width="7"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="168" y="95" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+        font-size="66" font-weight="800" letter-spacing="-1.5" fill="#221C17">trustmailer</text>
+</svg>

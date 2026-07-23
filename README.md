@@ -1,4 +1,9 @@
-# trustmailer
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-lockup-dark.svg">
+    <img src="assets/logo-lockup-light.svg" alt="trustmailer" width="380">
+  </picture>
+</p>
 
 A [nodemailer](https://nodemailer.com)-compatible mail library, Rust-powered, for every
 runtime: native Rust, Node.js/Bun/Deno (one native addon, no per-runtime rebuild),
