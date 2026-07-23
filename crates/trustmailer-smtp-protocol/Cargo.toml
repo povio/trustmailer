@@ -1,0 +1,13 @@
+[package]
+name = "trustmailer-smtp-protocol"
+description = "Pure SMTP protocol logic for trustmailer (command formatting, response parsing, dot-stuffing, auth encoding) — no I/O, no socket, compiles anywhere including wasm32. Shared by the native (tokio) SMTP transport and the Cloudflare Workers (cloudflare:sockets) one."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+trustmailer-core = { workspace = true }
+base64 = { workspace = true }
