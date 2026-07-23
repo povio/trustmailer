@@ -26,6 +26,55 @@
   color-scheme: dark;
 }
 
+/*
+ * Real light theme — same hues, deepened/lightened per surface rather than the dark
+ * values left as-is (a `#e2593c` rust or `#f3ce6e` gold reads fine on near-black but
+ * fails contrast as text on paper). Applies via the same `data-theme` attribute and
+ * `prefers-color-scheme` Starlight's own theme picker uses (see Header.astro), so a
+ * choice made on a docs page carries over to this landing page and back.
+ */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #faf6f0;
+    --bg-raised: #f1e9dd;
+    --bg-card: #ece1d2;
+    --ink: #241c15;
+    --ink-dim: #5b4c3d;
+    --ink-faint: #7a6a57;
+    --rule: #e4d6c3;
+    --rule-soft: #ece0cd;
+
+    --rust: #b23a22;
+    --rust-light: #c4432a;
+    --rust-deep: #8c2f1e;
+    --teal: #0e6e80;
+    --teal-light: #0f7a90;
+    --teal-deep: #073c46;
+    --gold: #8a5a0e;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #faf6f0;
+  --bg-raised: #f1e9dd;
+  --bg-card: #ece1d2;
+  --ink: #241c15;
+  --ink-dim: #5b4c3d;
+  --ink-faint: #7a6a57;
+  --rule: #e4d6c3;
+  --rule-soft: #ece0cd;
+
+  --rust: #b23a22;
+  --rust-light: #c4432a;
+  --rust-deep: #8c2f1e;
+  --teal: #0e6e80;
+  --teal-light: #0f7a90;
+  --teal-deep: #073c46;
+  --gold: #8a5a0e;
+}
+
 * {
   box-sizing: border-box;
 }

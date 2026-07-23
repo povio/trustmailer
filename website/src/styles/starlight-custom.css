@@ -1,13 +1,19 @@
 @import "@fontsource-variable/fraunces/standard.css";
 
 /*
- * trustmailer docs theme — same tokens as the landing page (src/styles/global.css),
- * mapped onto Starlight's CSS custom properties. Both `:root` and the light-mode
- * override are set to the same dark palette on purpose: this brand commits to one
- * visual identity rather than following the reader's OS/toggle preference.
+ * trustmailer docs theme — same palette family as the landing page
+ * (src/styles/global.css: rust/teal/gold on a warm neutral), mapped onto Starlight's
+ * CSS custom properties, with a real, separately-tuned light mode — not a naive
+ * inversion. Accent hexes differ between themes on purpose: a hue that's legible as an
+ * accent on a near-black background is usually too light to pass as body/link text on
+ * a paper-colored one, so each theme gets its own deepened/lightened variant of the
+ * same hue rather than sharing one hardcoded value.
  */
-:root,
-:root[data-theme="light"] {
+
+/* Dark (default) */
+:root {
+  color-scheme: dark;
+
   --sl-color-white: #f2e9de;
   --sl-color-gray-1: #ecdfd0;
   --sl-color-gray-2: #cfc1b1;
@@ -47,7 +53,55 @@
   --sl-color-green-low: #4a3c14;
   --sl-color-green: #f3ce6e;
   --sl-color-green-high: #fbe7b6;
+}
 
+/* Light — a real second theme, not the dark palette left unchanged. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --sl-color-white: #241c15;
+  --sl-color-gray-1: #2e241a;
+  --sl-color-gray-2: #5b4c3d;
+  --sl-color-gray-3: #7a6a57;
+  --sl-color-gray-4: #9c8b76;
+  --sl-color-gray-5: #c7b8a2;
+  --sl-color-gray-6: #ece1d2;
+  --sl-color-gray-7: #f5eee3;
+  --sl-color-black: #faf6f0;
+
+  --sl-color-bg: #faf6f0;
+  --sl-color-bg-nav: #f1e9dd;
+  --sl-color-bg-sidebar: #f1e9dd;
+  --sl-color-bg-inline-code: #ece1d2;
+  --sl-color-bg-accent: #c4432a;
+
+  --sl-color-text: var(--sl-color-gray-2);
+  --sl-color-text-accent: #8c2f1e;
+  --sl-color-text-invert: #faf6f0;
+
+  --sl-color-hairline-light: #ece0cd;
+  --sl-color-hairline: #e4d6c3;
+  --sl-color-hairline-shade: #d8c6ae;
+  --sl-color-backdrop-overlay: hsla(30, 25%, 90%, 0.75);
+
+  /* accent = rust, deepened for AA-ish contrast on a light ground */
+  --sl-color-accent-low: #f3dcd3;
+  --sl-color-accent: #b23a22;
+  --sl-color-accent-high: #6e1f10;
+
+  /* "note" asides: deep teal on light, not the dark theme's bright cyan-teal */
+  --sl-color-blue-low: #dceef1;
+  --sl-color-blue: #0e6e80;
+  --sl-color-blue-high: #073c46;
+
+  /* "tip" asides: dark amber reads as text on light; the dark theme's bright gold
+     doesn't have enough contrast against paper. */
+  --sl-color-green-low: #f5e8c8;
+  --sl-color-green: #8a5a0e;
+  --sl-color-green-high: #4a2f07;
+}
+
+:root {
   --sl-font: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --sl-font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
 
@@ -69,8 +123,9 @@ starlight-toc nav > .top-level > li > a {
 .sl-markdown-content h1 { font-weight: 600; }
 .sl-markdown-content h2 { font-weight: 560; }
 
-/* Sidebar/current-page accents pick up the seal gold rather than reusing the
-   rust accent everywhere, so active-state highlights read distinctly from links. */
+/* Sidebar/current-page accents pick up the highest-contrast neutral rather than
+   reusing the rust accent everywhere, so active-state highlights read distinctly
+   from links in both themes. */
 starlight-tabs [aria-selected="true"],
 a[aria-current="page"] {
   color: var(--sl-color-white);
@@ -81,5 +136,5 @@ site-search > button {
 }
 
 ::selection {
-  background: color-mix(in srgb, #f3ce6e 35%, transparent);
+  background: color-mix(in srgb, var(--sl-color-green) 35%, transparent);
 }

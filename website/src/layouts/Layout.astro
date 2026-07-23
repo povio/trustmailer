@@ -23,6 +23,22 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="canonical" href={canonicalURL} />
     <meta name="theme-color" content="#171310" />
 
+    <!-- Applied before paint to avoid a flash of the wrong theme. Reads the same
+         `starlight-theme` localStorage key the docs site's theme picker writes to
+         (see Header.astro), so a choice made on either side of the site carries over. -->
+    <script is:inline>
+      (function () {
+        var stored = localStorage.getItem("starlight-theme");
+        var theme =
+          stored === "light" || stored === "dark"
+            ? stored
+            : matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+
     <title>{title}</title>
     <meta name="description" content={description} />
 
