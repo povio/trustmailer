@@ -1,0 +1,37 @@
+[package]
+name = "trustmailer-core"
+description = "Core MIME message builder, address parsing and transport trait for trustmailer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[features]
+default = []
+fs = []
+http = ["dep:reqwest"]
+
+[dependencies]
+async-trait = { workspace = true }
+thiserror = { workspace = true }
+bytes = { workspace = true }
+base64 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+time = { version = "0.3", features = ["formatting", "parsing", "macros"] }
+uuid = { version = "1", features = ["v4"] }
+rand = "0.10.2"
+mime_guess = "2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "webpki-roots"], optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+time = { version = "0.3", features = ["wasm-bindgen"] }
+uuid = { version = "1", features = ["v4", "js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
+reqwest = { version = "0.13", default-features = false, features = [], optional = true }
+
+[dev-dependencies]
