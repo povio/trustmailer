@@ -22,3 +22,6 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# local AI-tool config, not meant for the public repo
+CLAUDE.md
