@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/trustmailer-core",
+    "crates/trustmailer-smtp-protocol",
+    "crates/trustmailer-smtp",
+    "crates/trustmailer-smtp-cfworkers",
+    "crates/trustmailer-sendmail",
+    "crates/trustmailer-ses",
+    "crates/trustmailer-stream",
+    "crates/trustmailer-json",
+    "crates/trustmailer-dkim",
+    "crates/trustmailer",
+    "crates/trustmailer-node",
+    "crates/trustmailer-wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/dercosa/trustmailer"
+authors = ["Dercosa"]
+rust-version = "1.80"
+
+[workspace.dependencies]
+trustmailer-core = { path = "crates/trustmailer-core", version = "0.1.0" }
+trustmailer-smtp-protocol = { path = "crates/trustmailer-smtp-protocol", version = "0.1.0" }
+trustmailer-smtp = { path = "crates/trustmailer-smtp", version = "0.1.0" }
+trustmailer-smtp-cfworkers = { path = "crates/trustmailer-smtp-cfworkers", version = "0.1.0" }
+trustmailer-sendmail = { path = "crates/trustmailer-sendmail", version = "0.1.0" }
+trustmailer-ses = { path = "crates/trustmailer-ses", version = "0.1.0" }
+trustmailer-stream = { path = "crates/trustmailer-stream", version = "0.1.0" }
+trustmailer-json = { path = "crates/trustmailer-json", version = "0.1.0" }
+trustmailer-dkim = { path = "crates/trustmailer-dkim", version = "0.1.0" }
+
+async-trait = "0.1"
+thiserror = "2.0.19"
+bytes = "1"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

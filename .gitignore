@@ -1,0 +1,10 @@
+/target
+Cargo.lock
+node_modules/
+*.node
+pkg/
+.wrangler/
+.DS_Store
+*.pem
+# ...except checked-in test fixtures (throwaway keys, required by include_str! in tests).
+!crates/*/test-fixtures/*.pem
