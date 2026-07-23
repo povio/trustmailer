@@ -1,0 +1,14 @@
+{
+  "name": "trustmailer-vs-nodemailer-benchmarks",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Real, reproducible comparison scripts between nodemailer and trustmailer — output parity and throughput. Not marketing numbers: run `npm install && npm run bench` yourself.",
+  "scripts": {
+    "bench": "node bench.cjs",
+    "parity": "node parity.cjs"
+  },
+  "dependencies": {
+    "nodemailer": "9.0.3",
+    "trustmailer": "file:../crates/trustmailer-node"
+  }
+}
