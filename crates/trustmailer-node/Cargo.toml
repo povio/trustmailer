@@ -1,0 +1,27 @@
+[package]
+name = "trustmailer-node"
+description = "Node.js native addon bindings for trustmailer, via napi-rs. Drop-in-shaped replacement for nodemailer's createTransport()/sendMail() API."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+base64 = { workspace = true }
+trustmailer-core = { workspace = true }
+trustmailer-smtp = { workspace = true }
+trustmailer-sendmail = { workspace = true }
+trustmailer-stream = { workspace = true }
+trustmailer-json = { workspace = true }
+trustmailer-dkim = { workspace = true }
+napi = { version = "3", default-features = false, features = ["napi4", "async", "tokio_rt"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"

@@ -1,0 +1,27 @@
+{
+  "name": "trustmailer",
+  "version": "0.1.0",
+  "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT OR Apache-2.0",
+  "napi": {
+    "name": "trustmailer",
+    "triples": {
+      "defaults": true
+    }
+  },
+  "engines": {
+    "node": ">= 16"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "test": "node smoke-test.cjs",
+    "test:bun": "bun smoke-test.cjs",
+    "test:deno": "deno run -A smoke-test.cjs"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3"
+  }
+}
