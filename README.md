@@ -9,7 +9,7 @@ A [nodemailer](https://nodemailer.com)-compatible mail library, Rust-powered, fo
 runtime: native Rust, Node.js/Bun/Deno (one native addon, no per-runtime rebuild),
 Cloudflare Workers (real SMTP over genuine outbound TCP, not an HTTP relay), and the
 browser/other WASM hosts. Same message model, same transport contract — one Rust core,
-four ways to call it.
+four ways to call it. Built by [nesgarbo](https://nesgarbo.com).
 
 `trust` because it's Rust (and because you shouldn't have to trust a JS mail stack's
 transitive dependency tree with your SMTP credentials).
