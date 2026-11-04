@@ -46,13 +46,23 @@ export interface MailOptions {
    */
   messageId?: string
   attachments?: Array<AttachmentInput>
+  /** Custom headers. Names must be printable ASCII tokens without colons. */
+  headers?: Record<string, string>
 }
+
+/**
+ * Render a draft as RFC 5322 MIME encoded in base64, without delivery or envelope
+ * validation. Native MIME temporaries are freed before the JS string is returned.
+ */
+export declare function renderEmlBase64(options: MailOptions): string
 
 export interface SentInfoJs {
   messageId: string
   accepted: Array<string>
   rejected: Array<string>
   response?: string
+  /** Exact MIME bytes encoded as base64, when supplied by the transport. */
+  rawBase64?: string
 }
 
 export interface SesOptions {
@@ -97,7 +107,7 @@ export interface TransportOptions {
    * be an absolute path, since a relative value falls back to a `PATH` lookup.
    */
   path?: string
-  /** Render messages instead of sending them (returns the raw MIME as `response`). */
+  /** Render messages instead of sending them (status in `response`, MIME in `rawBase64`). */
   streamTransport?: boolean
   /** Render messages as JSON instead of sending them (returns JSON as `response`). */
   jsonTransport?: boolean
