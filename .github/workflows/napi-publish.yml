@@ -49,7 +49,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -75,7 +75,7 @@ jobs:
         run: cargo install cargo-xwin --locked
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build (native)
         if: matrix.settings.cross == ''
@@ -112,41 +112,34 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
 
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@11.6.2
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: crates/trustmailer-node/artifacts
 
-      - name: Move binaries into per-platform npm packages
+      - name: Collect binaries into the main package
         run: |
-          for f in artifacts/*/*.node; do
-            fname=$(basename "$f")
-            # trustmailer.<platform>.node -> <platform>
-            platform=$(echo "$fname" | sed -E 's/^[^.]+\.(.+)\.node$/\1/')
-            mkdir -p "npm/$platform"
-            cp "$f" "npm/$platform/$fname"
-            cp LICENSE-MIMALLOC "npm/$platform/LICENSE-MIMALLOC"
+          cp artifacts/*/*.node .
+          for platform in darwin-arm64 darwin-x64 win32-x64-msvc win32-arm64-msvc linux-x64-gnu linux-x64-musl linux-arm64-gnu linux-arm64-musl; do
+            test -s "${APP_NAME}.${platform}.node"
           done
-          ls -la npm/*/*.node
+          ls -lh *.node
 
-      - name: Sync versions into platform packages
-        run: npx napi version
-
-      - name: Publish platform packages
+      - name: Check release version
         run: |
-          for d in npm/*/; do
-            (cd "$d" && npm publish --access public --provenance)
-          done
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          test "${GITHUB_REF_NAME}" = "v$(node -p 'require("./package.json").version')"
 
-      - name: Publish main package
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Test assembled package
+        run: npm test
+
+      - name: Publish main package with trusted publishing
+        run: npm publish --access public

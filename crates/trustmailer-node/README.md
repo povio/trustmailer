@@ -1,4 +1,4 @@
-# trustmailer
+# @povio/trustmailer
 
 Rust-powered, [nodemailer](https://nodemailer.com)-compatible mail library — a native
 addon via [napi-rs](https://napi.rs). One compiled binary, same API, runs unmodified on
@@ -10,16 +10,21 @@ Full documentation, transport reference, and a real comparison against nodemaile
 ## Install
 
 ```sh
-npm install trustmailer
+npm install @povio/trustmailer
 ```
 
-Prebuilt binaries ship for macOS (x64/arm64), Linux (x64/arm64, glibc/musl), and Windows
-(x64/arm64) via `optionalDependencies` — no Rust toolchain needed at install time.
+Native binaries are bundled directly in this package; no Rust toolchain is needed
+at install time. The first local release (`0.1.1`) contains only the Apple Silicon
+macOS binary. Subsequent releases built by GitHub Actions include macOS (x64/arm64),
+Linux (x64/arm64, glibc/musl), and Windows (x64/arm64).
+
+This is the Povio fork. See [PUBLISHING.md](PUBLISHING.md) for local publishing and
+GitHub Actions trusted publishing setup.
 
 ## Usage
 
 ```js
-const { createTransport } = require("trustmailer");
+const { createTransport } = require("@povio/trustmailer");
 
 const transporter = createTransport({
   host: "smtp.example.com",
@@ -44,7 +49,7 @@ extension or a `package.json` with `"type"` set) — it's the same native addon 
 
 - [Docs & transport reference](https://trustmailer.nesgarbo.com/docs/)
 - [nodemailer vs trustmailer comparison](https://trustmailer.nesgarbo.com/docs/comparison/)
-- [Source](https://github.com/nesgarbo/trustmailer)
+- [Source](https://github.com/povio/trustmailer)
 
 ## License
 
@@ -53,7 +58,7 @@ MIT OR Apache-2.0
 ## Render an EML draft (Node.js / Bun)
 
 ```js
-const { renderEmlBase64 } = require('trustmailer');
+const { renderEmlBase64 } = require('@povio/trustmailer');
 const base64 = renderEmlBase64({
   // Sender and recipient strings may be omitted or blank for a draft.
   subject: 'Draft – 日本語',
