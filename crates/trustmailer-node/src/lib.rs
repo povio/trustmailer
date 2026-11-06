@@ -10,6 +10,10 @@ use napi_derive::napi;
 use std::sync::Arc;
 use trustmailer_core::Message;
 
+#[cfg(not(target_arch = "wasm32"))]
+#[global_allocator]
+static ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 /// Maps every `trustmailer_core::Error` variant to a `napi::Error` whose message is
 /// prefixed with a stable `[VariantName]` tag (and whose `Status` is chosen per
 /// variant, where a reasonable mapping exists), so JS callers can pattern-match on
@@ -76,7 +80,7 @@ pub struct TransportOptions {
     /// operator-supplied config, not attacker-controllable input — it should generally
     /// be an absolute path, since a relative value falls back to a `PATH` lookup.
     pub path: Option<String>,
-    /// Render messages instead of sending them (returns the raw MIME as `response`).
+    /// Render messages instead of sending them (status in `response`, MIME in `rawBase64`).
     pub stream_transport: Option<bool>,
     /// Render messages as JSON instead of sending them (returns JSON as `response`).
     pub json_transport: Option<bool>,
@@ -110,6 +114,8 @@ pub struct MailOptions {
     /// `info.messageId` behavior.
     pub message_id: Option<String>,
     pub attachments: Option<Vec<AttachmentInput>>,
+    /// Custom headers. Names must be printable ASCII tokens without colons.
+    pub headers: Option<std::collections::HashMap<String, String>>,
 }
 
 #[napi(object)]
@@ -118,6 +124,8 @@ pub struct SentInfoJs {
     pub accepted: Vec<String>,
     pub rejected: Vec<String>,
     pub response: Option<String>,
+    /// Exact MIME bytes encoded as base64, when supplied by the transport.
+    pub raw_base64: Option<String>,
 }
 
 fn build_attachment(a: AttachmentInput) -> trustmailer_core::Attachment {
@@ -174,6 +182,17 @@ fn build_message(mail: MailOptions) -> Result<Message> {
             builder = builder.attachment(build_attachment(attachment));
         }
     }
+    if let Some(headers) = mail.headers {
+        for (name, value) in headers {
+            if name.is_empty() || !name.bytes().all(|b| (33..=126).contains(&b) && b != b':') {
+                return Err(napi::Error::new(
+                    Status::InvalidArg,
+                    "invalid custom header name",
+                ));
+            }
+            builder = builder.header(name, value);
+        }
+    }
     Ok(builder.build())
 }
 
@@ -182,15 +201,18 @@ fn to_sent_info(info: trustmailer_core::SentInfo) -> SentInfoJs {
         message_id: info.message_id,
         accepted: info.accepted,
         rejected: info.rejected,
-        // Every transport reachable from this crate (SMTP, sendmail, stream, JSON, and
-        // `SigningTransport` wrapping any of them) always sets `response`, so falling
-        // back to `raw` here is currently dead code. Base64-encode it rather than doing
-        // a lossy UTF-8 decode, though, so that if some future transport ever returns
-        // only `raw`, binary content (e.g. attachments) isn't silently corrupted.
-        response: info
-            .response
-            .or_else(|| info.raw.map(|r| STANDARD.encode(r))),
+        response: info.response,
+        raw_base64: info.raw.map(|raw| STANDARD.encode(raw)),
     }
+}
+
+/// Render a draft as RFC 5322 MIME encoded in base64, without delivery or envelope
+/// validation. Native MIME temporaries are freed before the JS string is returned.
+#[napi]
+pub fn render_eml_base64(options: MailOptions) -> Result<String> {
+    let message = build_message(options)?;
+    let raw = trustmailer_core::mime::build(&message, "localhost").map_err(to_napi_err)?;
+    Ok(STANDARD.encode(raw))
 }
 
 #[napi]
@@ -277,11 +299,8 @@ pub fn create_transport(options: TransportOptions) -> Result<Transporter> {
         });
     }
     if let Some(ses) = options.ses {
-        let mut config = trustmailer_ses::SesConfig::new(
-            ses.region,
-            ses.access_key_id,
-            ses.secret_access_key,
-        );
+        let mut config =
+            trustmailer_ses::SesConfig::new(ses.region, ses.access_key_id, ses.secret_access_key);
         if let Some(token) = ses.session_token {
             config = config.with_session_token(token);
         }

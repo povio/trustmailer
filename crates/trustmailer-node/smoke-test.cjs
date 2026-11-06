@@ -16,7 +16,7 @@ transporter
     text: `hello from ${runtime}`,
   })
   .then((info) => {
-    console.log(`OK (${runtime}): rendered ${info.response.length} bytes, accepted=${JSON.stringify(info.accepted)}`);
+    console.log(`OK (${runtime}): rendered ${Buffer.from(info.rawBase64, "base64").length} bytes, accepted=${JSON.stringify(info.accepted)}`);
   })
   .catch((err) => {
     console.error(`FAIL (${runtime}):`, err);
