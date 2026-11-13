@@ -68,14 +68,14 @@ synchronously to fetch over the network.
 
 `resolved_content_type()` returns, in order: the explicit `content_type` if set;
 otherwise a guess from `filename`'s extension (via the `mime_guess` crate); otherwise
-`application/octet-stream`. This also decides transfer encoding — see below.
+`application/octet-stream`.
 
 ### Transfer encoding
 
-Every attachment part is encoded before being embedded in the message: content whose
-resolved MIME type starts with `text/` is quoted-printable encoded, and everything else
-(images, PDFs, archives, ...) is base64 encoded. This is decided automatically from the
-content type; there's currently no field to force a specific transfer encoding.
+Every attachment part is base64 encoded, whatever its content type, so the recipient
+gets the file byte for byte. Quoted-printable is not used for attachments, because it
+rewrites bare LF line endings as CRLF and cannot carry `text/*` files that are not
+valid UTF-8. There's currently no field to force a different transfer encoding.
 
 ## Filenames with unicode or special characters
 
