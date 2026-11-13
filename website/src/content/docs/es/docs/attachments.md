@@ -69,16 +69,15 @@ nunca bloquea de forma síncrona para descargar por red.
 
 `resolved_content_type()` devuelve, en este orden: el `content_type` explícito si está
 definido; si no, una estimación a partir de la extensión de `filename` (vía el crate
-`mime_guess`); si no, `application/octet-stream`. Esto también decide la codificación
-de transferencia — ver más abajo.
+`mime_guess`); si no, `application/octet-stream`.
 
 ### Codificación de transferencia
 
-Cada parte de adjunto se codifica antes de incrustarse en el mensaje: el contenido cuyo
-tipo MIME resuelto empieza por `text/` se codifica en quoted-printable, y todo lo demás
-(imágenes, PDFs, archivos comprimidos, ...) se codifica en base64. Esto se decide
-automáticamente a partir del tipo de contenido; de momento no hay ningún campo para
-forzar una codificación de transferencia específica.
+Cada parte de adjunto se codifica en base64, sea cual sea su tipo de contenido, para
+que el destinatario reciba el archivo byte a byte. Quoted-printable no se usa para
+adjuntos, porque reescribe los saltos de línea LF como CRLF y no puede transportar
+archivos `text/*` que no sean UTF-8 válido. De momento no hay ningún campo para forzar
+otra codificación de transferencia.
 
 ## Nombres de archivo con unicode o caracteres especiales
 

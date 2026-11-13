@@ -1,6 +1,6 @@
 {
   "name": "@povio/trustmailer",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
   "homepage": "https://trustmailer.nesgarbo.com",
   "author": "Nestor Garcia <admin@nesgarbo.com> (https://nesgarbo.com)",

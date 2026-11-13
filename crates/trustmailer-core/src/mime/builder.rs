@@ -121,7 +121,6 @@ fn text_leaf(content_type: &str, text: &str) -> MimeNode {
 fn attachment_leaf(a: &Attachment) -> Result<MimeNode> {
     let bytes = a.resolve_bytes()?;
     let content_type = a.resolved_content_type();
-    let is_text = content_type.starts_with("text/");
     let mut headers = Vec::new();
 
     let ct_with_name = match &a.filename {
@@ -130,19 +129,13 @@ fn attachment_leaf(a: &Attachment) -> Result<MimeNode> {
     };
     headers.push(("Content-Type".to_string(), ct_with_name));
 
-    let transfer_encoding = if is_text {
-        TransferEncoding::QuotedPrintable
-    } else {
-        TransferEncoding::Base64
-    };
-    let cte_name = match transfer_encoding {
-        TransferEncoding::QuotedPrintable => "quoted-printable",
-        TransferEncoding::Base64 => "base64",
-        TransferEncoding::SevenBit => "7bit",
-    };
+    // Attachments are files, so their bytes must survive the round trip exactly.
+    // Quoted-printable is a text encoding: it rewrites bare LF line endings as CRLF
+    // and needs valid UTF-8, which corrupts `text/*` files in other charsets.
+    // Base64 for every attachment matches nodemailer's default.
     headers.push((
         "Content-Transfer-Encoding".to_string(),
-        cte_name.to_string(),
+        "base64".to_string(),
     ));
 
     let disposition = match a.content_disposition {
@@ -162,7 +155,7 @@ fn attachment_leaf(a: &Attachment) -> Result<MimeNode> {
         headers.push((name.clone(), value.clone()));
     }
 
-    Ok(MimeNode::leaf(headers, bytes, transfer_encoding))
+    Ok(MimeNode::leaf(headers, bytes, TransferEncoding::Base64))
 }
 
 /// Renders a `name=`/`filename=` MIME parameter. Plain ASCII values with no
@@ -415,6 +408,32 @@ mod tests {
         let s = String::from_utf8(raw).unwrap();
         assert!(s.contains("multipart/mixed"));
         assert!(s.contains("filename=\"test.txt\""));
+    }
+
+    #[test]
+    fn text_attachments_are_base64_encoded_byte_for_byte() {
+        // Bare LF line endings and a Windows-1250 byte that is not valid UTF-8.
+        let bytes = b"line one\nline two \x9a\n".to_vec();
+        let msg = Message::builder()
+            .from("a@example.com")
+            .to("b@example.com")
+            .text("plain")
+            .attachment(
+                Attachment::from_bytes("notes.txt", bytes.clone()).with_content_type("text/plain"),
+            )
+            .attachment(Attachment::from_bytes("rows.csv", bytes.clone()))
+            .build();
+        let raw = String::from_utf8(build(&msg, "example.com").unwrap()).unwrap();
+
+        use base64::{engine::general_purpose::STANDARD, Engine as _};
+        let encoded = STANDARD.encode(&bytes);
+        assert_eq!(raw.matches(encoded.as_str()).count(), 2);
+        for part in raw
+            .split("\r\n--")
+            .filter(|part| part.contains("filename="))
+        {
+            assert!(part.contains("Content-Transfer-Encoding: base64"));
+        }
     }
 
     // The following tests are behavioral ports of test/mail-composer/mail-composer-test.js

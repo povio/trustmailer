@@ -50,6 +50,14 @@ print(json.dumps(dict(subject=str(m['Subject'] or ''), sender=str(m['From'] or '
   assert.equal(draft.parts[2].filename, options.attachments[0].filename);
   assert.equal(draft.parts[2].data, binary.toString('base64'));
   assert.equal(draft.parts[3].data, ''); assert.equal(draft.parts[4].data, binary.toString('base64'));
+  // Text attachments are files: bare LF and non-UTF-8 bytes must survive unchanged.
+  const textFile = Buffer.concat([Buffer.from('line one\nline two \r\n'), Buffer.from([0x9a, 0x0a])]);
+  const withText = parse(renderEml({ text: 'body', attachments: [
+    { filename: 'notes.txt', content: textFile, contentType: 'text/plain' },
+    { filename: 'rows.csv', content: textFile },
+  ] }).toString('base64'));
+  assert.equal(withText.parts[1].data, textFile.toString('base64'));
+  assert.equal(withText.parts[2].data, textFile.toString('base64'));
   for (const name of ['Bad:Name', 'Bad\r\nInjected', '']) {
     assert.throws(() => renderEmlBase64({headers:{[name]: 'x'}}), /invalid custom header name/);
   }
