@@ -96,10 +96,60 @@ jobs:
           path: crates/trustmailer-node/${{ env.APP_NAME }}.*.node
           if-no-files-found: error
 
+  test-linux:
+    # Linux binaries are cross-compiled with zig, so the build job cannot run them.
+    # Load each one in a real Linux userland before anything is published. Tests
+    # run through `docker run` because JavaScript actions cannot run inside
+    # Alpine containers on ARM runners.
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            libc: gnu
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            libc: gnu
+          - host: ubuntu-24.04
+            target: x86_64-unknown-linux-musl
+            libc: musl
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-musl
+            libc: musl
+    name: test - ${{ matrix.settings.target }}
+    runs-on: ${{ matrix.settings.host }}
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: crates/trustmailer-node
+
+      - name: Test with Node.js on Debian Bookworm (glibc 2.36)
+        if: matrix.settings.libc == 'gnu'
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo/crates/trustmailer-node node:24-bookworm-slim
+          sh -euc 'apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null && npm test'
+
+      - name: Test with Bun on Debian
+        if: matrix.settings.libc == 'gnu'
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo/crates/trustmailer-node oven/bun:1.4.4-slim
+          sh -euc 'apt-get update -qq && apt-get install -y -qq --no-install-recommends python3 >/dev/null && bun run test:bun'
+
+      - name: Test with Node.js on Alpine (musl)
+        if: matrix.settings.libc == 'musl'
+        run: >-
+          docker run --rm -v "$PWD:/repo" -w /repo/crates/trustmailer-node node:24-alpine
+          sh -euc 'apk add --no-cache -q python3 && npm test'
+
   publish:
     name: publish to npm
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, test-linux]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       id-token: write

@@ -84,6 +84,9 @@ git push origin v0.1.2
 ```
 
 Pushing the tag publishes the release after the matrix builds and tests pass.
+Cross-compiled Linux binaries are also loaded and tested in Debian Bookworm
+(Node.js and Bun, glibc) and Alpine (Node.js, musl) containers on x64 and ARM64
+runners; publishing waits for those jobs.
 The tag must match `v` plus the package version. Manual workflow dispatch builds
 and tests artifacts only; it does not publish from a branch.
 
