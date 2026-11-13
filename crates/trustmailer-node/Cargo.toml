@@ -29,3 +29,9 @@ napi-build = "2"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 mimalloc = { version = "=0.1.52", default-features = false }
+
+# musl refuses to dlopen a library whose thread-local storage uses the
+# initial-exec model, which is mimalloc's default. Without this the addon
+# fails to load on x86_64 Alpine and segfaults on aarch64 Alpine.
+[target.'cfg(target_env = "musl")'.dependencies]
+mimalloc = { version = "=0.1.52", default-features = false, features = ["local_dynamic_tls"] }
