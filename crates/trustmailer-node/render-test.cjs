@@ -1,7 +1,7 @@
 // Run against the built addon: node render-test.cjs / bun render-test.cjs
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
-const { renderEmlBase64, createTransport } = require('./index.js');
+const { renderEml, renderEmlBase64, createTransport } = require('./index.js');
 function parse(base64) {
   const result = spawnSync('python3', ['-c', `
 import sys,json,base64
@@ -36,7 +36,12 @@ print(json.dumps(dict(subject=str(m['Subject'] or ''), sender=str(m['From'] or '
     ],
   };
   const draft = parse(renderEmlBase64(options));
-  assert.equal(draft.subject, options.subject); assert.match(draft.sender, /Živa/);
+  assert.equal(draft.subject, options.subject);
+  const bytes = renderEml(options);
+  assert.ok(Buffer.isBuffer(bytes));
+  const rendered = parse(bytes.toString('base64'));
+  assert.equal(rendered.subject, options.subject); assert.equal(rendered.unsent, '1');
+  assert.equal(rendered.parts[2].data, binary.toString('base64')); assert.match(draft.sender, /Živa/);
   assert.deepEqual(draft.to, ['jane@example.com', 'bob@example.com']);
   assert.equal(draft.unsent, '1'); assert.equal(draft.injected, null);
   assert.equal(draft.parts[0].type, 'text/plain'); assert.equal(draft.parts[1].type, 'text/html');
