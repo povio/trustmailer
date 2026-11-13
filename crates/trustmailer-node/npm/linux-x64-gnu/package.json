@@ -6,7 +6,8 @@
   ],
   "main": "trustmailer.linux-x64-gnu.node",
   "files": [
-    "trustmailer.linux-x64-gnu.node"
+    "trustmailer.linux-x64-gnu.node",
+    "LICENSE-MIMALLOC"
   ],
   "description": "Rust-powered, nodemailer-compatible mail library — native addon via napi-rs, runs on Node.js, Bun, and Deno unmodified",
   "author": "Nestor Garcia <admin@nesgarbo.com> (https://nesgarbo.com)",
