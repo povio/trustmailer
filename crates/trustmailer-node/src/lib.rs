@@ -215,6 +215,16 @@ pub fn render_eml_base64(options: MailOptions) -> Result<String> {
     Ok(STANDARD.encode(raw))
 }
 
+/// Render a draft as RFC 5322 MIME bytes, without delivery or envelope validation.
+/// The bytes are copied into a JavaScript-owned Buffer, so native MIME temporaries are
+/// freed before returning and the result is tracked by the JavaScript garbage collector.
+#[napi]
+pub fn render_eml<'env>(env: &'env Env, options: MailOptions) -> Result<BufferSlice<'env>> {
+    let message = build_message(options)?;
+    let raw = trustmailer_core::mime::build(&message, "localhost").map_err(to_napi_err)?;
+    BufferSlice::copy_from(env, raw)
+}
+
 #[napi]
 pub struct Transporter {
     inner: Arc<dyn trustmailer_core::Transport + Send + Sync>,

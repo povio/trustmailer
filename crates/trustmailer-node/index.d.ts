@@ -51,6 +51,13 @@ export interface MailOptions {
 }
 
 /**
+ * Render a draft as RFC 5322 MIME bytes, without delivery or envelope validation.
+ * The bytes are copied into a JavaScript-owned Buffer, so native MIME temporaries are
+ * freed before returning and the result is tracked by the JavaScript garbage collector.
+ */
+export declare function renderEml(options: MailOptions): Buffer
+
+/**
  * Render a draft as RFC 5322 MIME encoded in base64, without delivery or envelope
  * validation. Native MIME temporaries are freed before the JS string is returned.
  */

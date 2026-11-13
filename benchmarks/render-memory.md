@@ -47,3 +47,19 @@ these new upstream runs. This machine cannot verify Linux/Windows, Intel macOS,
 Deno, older Node versions, or WASM runtime loading. Existing target packaging is
 retained; native release CI now also runs the MIME regression test where runnable.
 No package has been published and no Shippy code or PR was modified.
+
+## Buffer output (`renderEml`)
+
+`renderEml` returns MIME bytes copied into a JavaScript-owned Buffer, so callers that
+need bytes skip the base64 string and decode. Run on 2026-11-13, macOS ARM64, Bun 1.4.4,
+`bun benchmarks/render-output.cjs <variant> <kind> <calls>`, median of five fresh
+processes (render time is each process's median after five warmups):
+
+| Workload | `renderEmlBase64` + decode | `renderEml` |
+| --- | ---: | ---: |
+| 3 × 200 KiB PDFs (822 KiB EML), 300 calls | 0.97 ms, peak RSS 48 MiB | 0.51 ms, peak RSS 43 MiB |
+| 10 MiB attachment (14 MiB EML), 100 calls | 16.0 ms, peak RSS 227 MiB | 8.6 ms, peak RSS 286 MiB |
+
+Returning the native `Vec` as an external Buffer (no copy) was also measured and
+rejected: peak RSS reached 263 MiB and 1,541 MiB on the same workloads, because
+external memory is released only by later garbage-collection finalizers.
