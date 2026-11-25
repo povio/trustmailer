@@ -9,7 +9,7 @@ hand-tuned to make a point; if a number looks unflattering, it's reported anyway
 ```sh
 cd trustmailer  # repo root
 cargo build --release --example render_json --example render_stream -p trustmailer
-cd crates/trustmailer-node && npx napi build --platform --release && cd ../..
+cd crates/trustmailer-node && npm ci && npm run build && cd ../..
 cd benchmarks
 npm install
 ```

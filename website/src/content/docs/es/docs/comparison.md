@@ -129,7 +129,7 @@ algo gratis.
 git clone https://github.com/nesgarbo/trustmailer
 cd trustmailer
 cargo build --release --example render_json --example render_stream -p trustmailer
-cd crates/trustmailer-node && npx napi build --platform --release && cd ../..
+cd crates/trustmailer-node && npm ci && npm run build && cd ../..
 cd benchmarks
 npm install
 npm run parity

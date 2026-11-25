@@ -8,7 +8,7 @@ description: Comandos de build para cada target de trustmailer.
 cargo build --workspace --exclude trustmailer-node
 
 # addon nativo de Node.js/Bun/Deno (ejecutar desde crates/trustmailer-node) — un build, los tres runtimes
-npx @napi-rs/cli build --platform --release
+npm ci && npm run build   # genera binding.js/binding.d.ts; index.js se mantiene a mano
 node smoke-test.cjs   # o: bun smoke-test.cjs / deno run -A smoke-test.cjs
 
 # SMTP de Cloudflare Workers (ejecutar desde crates/trustmailer-smtp-cfworkers)

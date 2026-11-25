@@ -63,3 +63,29 @@ processes (render time is each process's median after five warmups):
 Returning the native `Vec` as an external Buffer (no copy) was also measured and
 rejected: peak RSS reached 263 MiB and 1,541 MiB on the same workloads, because
 external memory is released only by later garbage-collection finalizers.
+
+## Streamed attachments (`renderEmlStream`)
+
+`benchmarks/stream-memory.cjs` renders one draft with ten 10 MiB attachments (136.8 MiB
+EML). Each attachment comes from a Node.js `Readable` yielding 64 KiB chunks, which
+stands in for an S3 object stream. `buffer` reads every attachment into a Buffer
+and calls `renderEml`, as callers had to before. `stream` passes the sources to
+`renderEmlStream`. Both consume the output chunk by chunk without keeping it.
+
+```sh
+node benchmarks/stream-memory.cjs buffer 10 10
+node benchmarks/stream-memory.cjs stream 10 10   # or bun ...
+```
+
+Run on 2026-11-25, macOS ARM64, Node 24.13.0 and Bun 1.4.4, release build. Median of
+five fresh processes, peak RSS from `process.resourceUsage().maxRSS`:
+
+| Runtime | `renderEml` (buffered) | `renderEmlStream` |
+| --- | ---: | ---: |
+| Node 24.13.0 | 897.2 MiB, 261 ms | 74.7 MiB, 224 ms |
+| Bun 1.4.4 | 862.7 MiB, 222 ms | 45.0 MiB, 156 ms |
+
+Single runs with 3× the data (410.5 MiB EML) stayed close: Node 85.7 MiB for 30 × 10 MiB
+and 94.2 MiB for 3 × 100 MiB, Bun 45.0 MiB for 30 × 10 MiB. Only one source chunk and its
+base64 are in flight at a time (plus garbage the JS engine has not collected yet), so a
+source that yields very large chunks raises the peak accordingly.

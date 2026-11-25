@@ -90,6 +90,55 @@ and Rust library consumers keep their own allocators. Allocator licensing is in
 `LICENSE-MIMALLOC`. Release artifacts must remain unstripped: stripped Rust 1.94
 Mach-O libraries were rejected by the macOS 27 loader with a LINKEDIT alignment error.
 
+## Stream an EML draft with large attachments (Node.js / Bun / Deno)
+
+`renderEmlStream` renders the same MIME as `renderEml`, but reads each attachment from
+a stream while the output is consumed, so attachments are never all in memory.
+
+```js
+const { renderEmlStream } = require('@povio/trustmailer');
+const { Readable } = require('node:stream');
+
+const eml = await renderEmlStream({
+  subject: 'Draft',
+  to: 'bob@example.com',
+  html: '<b>Hello</b>',
+  headers: { 'X-Unsent': '1' },
+  attachments: [
+    // `open` runs when the part is about to be written; return null to leave it out.
+    { filename: 'report.pdf', contentType: 'application/pdf', open: () => openFromS3(key) },
+    { filename: 'small.txt', content: Buffer.from('in memory is fine too') },
+  ],
+});
+Readable.fromWeb(eml).pipe(res); // or `new Response(eml)` on Bun/Deno/fetch servers
+```
+
+`renderEmlStream(options): Promise<ReadableStream<Uint8Array>>` accepts the same
+options as `renderEml`. An attachment may have `open` instead of `content`; `open()`
+returns (or resolves to) a web `ReadableStream`, an async iterable of `Uint8Array`
+(such as a Node.js `Readable`), a `Uint8Array`, or `null`.
+
+- Headers, boundaries, RFC 2047/2231 encoding and header sanitizing come from the same
+  native builder as `renderEml`. For the same input the bytes differ only in `Date`,
+  a generated `Message-ID`, and the random boundaries. Bodies are base64 with
+  76-character CRLF lines, whatever the source's chunk sizes.
+- Sources open in the order their parts appear (inline `cid` attachments first). The
+  first opens before the promise resolves, so `open` errors there reject it, and a server
+  can still answer with an HTTP error. Each later source opens when the previous one
+  starts streaming, so at most one is open ahead.
+- `open()` returning `null` drops that attachment's whole MIME part. A rejected
+  `open()`, a source error, or a chunk that is not a `Uint8Array` errors the stream.
+- The stream pulls lazily (high-water mark 0). Cancelling it cancels the source being
+  read and the one opened ahead (a Node.js `Readable` is destroyed).
+
+Custom `headers` are written in the object's key order.
+
+## Building and tests
+
+`npm run build` writes the napi-rs loader to `binding.js`/`binding.d.ts`. `index.js` and
+`index.d.ts` are maintained by hand and add `renderEmlStream`. Do not run
+`napi build --platform` without `--js binding.js`, or it overwrites `index.js`.
+
 Regression checks after `npm install && npm run build`: `npm test` and
 `npm run test:bun` (the MIME checks use Python 3's independent `email` parser).
 See [render memory evidence](../../benchmarks/render-memory.md) for reproduction and limits.
