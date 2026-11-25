@@ -21,8 +21,9 @@ trustmailer-stream = { workspace = true }
 trustmailer-json = { workspace = true }
 trustmailer-dkim = { workspace = true }
 trustmailer-ses = { workspace = true }
-napi = { version = "3", default-features = false, features = ["napi4", "async", "tokio_rt"] }
+napi = { version = "3", default-features = false, features = ["napi4", "async", "tokio_rt", "object_indexmap"] }
 napi-derive = "3"
+indexmap = "2"
 
 [build-dependencies]
 napi-build = "2"

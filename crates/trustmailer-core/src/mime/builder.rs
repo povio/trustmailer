@@ -1,5 +1,5 @@
 use super::encode::{encode_header_value, generate_boundary, generate_message_id};
-use super::node::{MimeNode, TransferEncoding};
+use super::node::{MimeNode, NodeContent, Template, TransferEncoding};
 use crate::address::Address;
 use crate::attachment::{Attachment, ContentDisposition};
 use crate::error::Result;
@@ -12,7 +12,33 @@ pub fn build(message: &Message, hostname: &str) -> Result<Vec<u8>> {
     if let Some(raw) = &message.raw {
         return Ok(raw.clone());
     }
+    Ok(build_tree(message, hostname, &[])?.render())
+}
 
+/// Builds the message like [`build`], except that the attachments at the `deferred`
+/// indices (into [`Message::attachments`]) are rendered with empty bodies. Their
+/// content is ignored. The returned [`Template`] reports where each deferred part and
+/// its base64 body sit, so a caller can stream the bodies in afterwards or drop a part.
+///
+/// Splicing the base64 of each deferred attachment's bytes (wrapped at 76 characters
+/// with CRLF, as [`super::encode::base64_wrap`] does) at its `body_start` yields the
+/// same bytes [`build`] returns for the message with that content, given a fixed
+/// `Date` and `Message-ID`. A pre-rendered `raw` message is rejected.
+pub fn build_template(message: &Message, hostname: &str, deferred: &[usize]) -> Result<Template> {
+    if message.raw.is_some() {
+        return Err(crate::Error::Mime(
+            "a raw message cannot have deferred attachments".to_string(),
+        ));
+    }
+    if let Some(&index) = deferred.iter().find(|&&i| i >= message.attachments.len()) {
+        return Err(crate::Error::Attachment(format!(
+            "deferred attachment index {index} is out of range"
+        )));
+    }
+    Ok(build_tree(message, hostname, deferred)?.render_template())
+}
+
+fn build_tree(message: &Message, hostname: &str, deferred: &[usize]) -> Result<MimeNode> {
     let mut content_nodes = Vec::new();
     if let Some(text) = &message.text {
         content_nodes.push(text_leaf("text/plain; charset=utf-8", text));
@@ -48,15 +74,26 @@ pub fn build(message: &Message, hostname: &str) -> Result<Vec<u8>> {
         MimeNode::multipart(headers, boundary, content_nodes)
     };
 
-    let (inline, regular): (Vec<&Attachment>, Vec<&Attachment>) = message
-        .attachments
-        .iter()
-        .partition(|a| a.content_disposition == ContentDisposition::Inline && a.cid.is_some());
+    type Indexed<'a> = Vec<(usize, &'a Attachment)>;
+    let (inline, regular): (Indexed, Indexed) =
+        message.attachments.iter().enumerate().partition(|(_, a)| {
+            a.content_disposition == ContentDisposition::Inline && a.cid.is_some()
+        });
+    let leaf = |(index, a): &(usize, &Attachment)| -> Result<MimeNode> {
+        if deferred.contains(index) {
+            Ok(MimeNode {
+                headers: attachment_headers(a),
+                content: NodeContent::Deferred { attachment: *index },
+            })
+        } else {
+            attachment_leaf(a)
+        }
+    };
 
     if !inline.is_empty() {
         let mut children = vec![body];
         for a in &inline {
-            children.push(attachment_leaf(a)?);
+            children.push(leaf(a)?);
         }
         let boundary = generate_boundary();
         let headers = vec![(
@@ -69,7 +106,7 @@ pub fn build(message: &Message, hostname: &str) -> Result<Vec<u8>> {
     if !regular.is_empty() {
         let mut children = vec![body];
         for a in &regular {
-            children.push(attachment_leaf(a)?);
+            children.push(leaf(a)?);
         }
         let boundary = generate_boundary();
         let headers = vec![(
@@ -81,7 +118,7 @@ pub fn build(message: &Message, hostname: &str) -> Result<Vec<u8>> {
 
     prepend_root_headers(&mut body, message, hostname);
 
-    Ok(body.render())
+    Ok(body)
 }
 
 fn calendar_leaf(event: &crate::message::CalendarEvent) -> MimeNode {
@@ -120,6 +157,14 @@ fn text_leaf(content_type: &str, text: &str) -> MimeNode {
 
 fn attachment_leaf(a: &Attachment) -> Result<MimeNode> {
     let bytes = a.resolve_bytes()?;
+    Ok(MimeNode::leaf(
+        attachment_headers(a),
+        bytes,
+        TransferEncoding::Base64,
+    ))
+}
+
+fn attachment_headers(a: &Attachment) -> Vec<(String, String)> {
     let content_type = a.resolved_content_type();
     let mut headers = Vec::new();
 
@@ -154,8 +199,7 @@ fn attachment_leaf(a: &Attachment) -> Result<MimeNode> {
     for (name, value) in &a.headers {
         headers.push((name.clone(), value.clone()));
     }
-
-    Ok(MimeNode::leaf(headers, bytes, TransferEncoding::Base64))
+    headers
 }
 
 /// Renders a `name=`/`filename=` MIME parameter. Plain ASCII values with no
@@ -808,5 +852,170 @@ mod tests {
             .build();
         let raw = String::from_utf8(build(&msg, "example.com").unwrap()).unwrap();
         assert!(!raw.contains("\r\nX-Injected: evil"));
+    }
+
+    /// Replaces the random multipart boundaries so two renders can be compared.
+    fn normalize_boundaries(raw: &[u8]) -> Vec<u8> {
+        const PREFIX: &[u8] = b"--trustmailer-";
+        let mut seen: Vec<Vec<u8>> = Vec::new();
+        let mut out = Vec::with_capacity(raw.len());
+        let mut i = 0;
+        while i < raw.len() {
+            if raw[i..].starts_with(PREFIX) && i + PREFIX.len() + 24 <= raw.len() {
+                let token = raw[i..i + PREFIX.len() + 24].to_vec();
+                let n = match seen.iter().position(|t| *t == token) {
+                    Some(n) => n,
+                    None => {
+                        seen.push(token);
+                        seen.len() - 1
+                    }
+                };
+                out.extend_from_slice(format!("<boundary {n}>").as_bytes());
+                i += PREFIX.len() + 24;
+            } else {
+                out.push(raw[i]);
+                i += 1;
+            }
+        }
+        out
+    }
+
+    fn template_message(attachments: Vec<Attachment>) -> Message {
+        let mut builder = Message::builder()
+            .from("Živa <ziva@example.com>")
+            .to("\"Doe, Jane\" <jane@example.com>")
+            .subject("Pozdrav 世界\r\nInjected: yes")
+            .text("Živjo")
+            .html("<b>Živjo</b>")
+            .message_id("<fixed@example.com>")
+            .header("X-Unsent", "1");
+        for attachment in attachments {
+            builder = builder.attachment(attachment);
+        }
+        let mut message = builder.build();
+        message.date = Some(time::OffsetDateTime::UNIX_EPOCH);
+        message
+    }
+
+    fn splice(template: &Template, bodies: &[Option<&[u8]>]) -> Vec<u8> {
+        let mut out = Vec::new();
+        let mut offset = 0;
+        for part in &template.parts {
+            match bodies[part.attachment] {
+                Some(bytes) => {
+                    out.extend_from_slice(&template.bytes[offset..part.body_start]);
+                    out.extend_from_slice(super::super::encode::base64_wrap(bytes).as_bytes());
+                    offset = part.body_start;
+                }
+                None => {
+                    out.extend_from_slice(&template.bytes[offset..part.start]);
+                    offset = part.end;
+                }
+            }
+        }
+        out.extend_from_slice(&template.bytes[offset..]);
+        out
+    }
+
+    #[test]
+    fn template_with_spliced_bodies_matches_build() {
+        let binary: Vec<u8> = (0..=255u8).cycle().take(57 * 3 + 5).collect();
+        let contents: Vec<Vec<u8>> = vec![binary.clone(), Vec::new(), b"x".to_vec(), binary];
+        let attachments = |real: bool| {
+            vec![
+                Attachment::from_bytes(
+                    "račun 世界.bin",
+                    if real {
+                        contents[0].clone()
+                    } else {
+                        Vec::new()
+                    },
+                ),
+                Attachment::from_bytes("empty.bin", Vec::new()),
+                Attachment::from_bytes(
+                    "one.txt",
+                    if real {
+                        contents[2].clone()
+                    } else {
+                        Vec::new()
+                    },
+                )
+                .with_content_type("text/plain"),
+                Attachment::from_bytes(
+                    "logo.png",
+                    if real {
+                        contents[3].clone()
+                    } else {
+                        Vec::new()
+                    },
+                )
+                .inline_with_cid("logo@x"),
+            ]
+        };
+        let expected = build(&template_message(attachments(true)), "localhost").unwrap();
+        let template = build_template(
+            &template_message(attachments(false)),
+            "localhost",
+            &[0, 1, 2, 3],
+        )
+        .unwrap();
+        // The inline (related) attachment is rendered before the mixed ones.
+        let order: Vec<usize> = template.parts.iter().map(|p| p.attachment).collect();
+        assert_eq!(order, vec![3, 0, 1, 2]);
+        for part in &template.parts {
+            assert!(template.bytes[part.start..].starts_with(b"--"));
+            assert_eq!(&template.bytes[part.body_start..part.end], b"\r\n");
+            assert!(template.bytes[..part.body_start].ends_with(b"\r\n\r\n"));
+        }
+        let bodies: Vec<Option<&[u8]>> = contents.iter().map(|c| Some(c.as_slice())).collect();
+        let spliced = splice(&template, &bodies);
+        assert_eq!(
+            normalize_boundaries(&spliced),
+            normalize_boundaries(&expected)
+        );
+        assert!(!String::from_utf8_lossy(&spliced).contains("\r\nInjected: yes"));
+    }
+
+    #[test]
+    fn template_without_deferred_attachments_matches_build() {
+        let message = template_message(vec![Attachment::from_bytes("a.bin", vec![1, 2, 3])]);
+        let template = build_template(&message, "localhost", &[]).unwrap();
+        assert!(template.parts.is_empty());
+        assert_eq!(
+            normalize_boundaries(&template.bytes),
+            normalize_boundaries(&build(&message, "localhost").unwrap())
+        );
+    }
+
+    #[test]
+    fn dropping_a_deferred_part_matches_build_without_it() {
+        let kept = Attachment::from_bytes("kept.bin", vec![7; 100]);
+        let dropped = Attachment::from_bytes("dropped.bin", Vec::new());
+        let expected = build(
+            &template_message(vec![kept.clone(), kept.clone()]),
+            "localhost",
+        )
+        .unwrap();
+        let template = build_template(
+            &template_message(vec![kept.clone(), dropped, kept]),
+            "localhost",
+            &[0, 1, 2],
+        )
+        .unwrap();
+        let bytes = vec![7u8; 100];
+        let spliced = splice(&template, &[Some(&bytes), None, Some(&bytes)]);
+        assert_eq!(
+            normalize_boundaries(&spliced),
+            normalize_boundaries(&expected)
+        );
+    }
+
+    #[test]
+    fn template_rejects_out_of_range_and_raw_messages() {
+        let message = template_message(vec![Attachment::from_bytes("a.bin", Vec::new())]);
+        assert!(build_template(&message, "localhost", &[1]).is_err());
+        let mut raw = message.clone();
+        raw.raw = Some(b"raw".to_vec());
+        assert!(build_template(&raw, "localhost", &[0]).is_err());
     }
 }

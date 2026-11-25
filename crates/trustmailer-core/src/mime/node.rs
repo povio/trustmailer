@@ -17,6 +17,36 @@ pub enum NodeContent {
         body: Vec<u8>,
         transfer_encoding: TransferEncoding,
     },
+    /// A base64 leaf whose body is written later by the caller, e.g. an attachment
+    /// streamed from storage. Rendered with an empty body; [`MimeNode::render_template`]
+    /// reports where the body belongs.
+    Deferred {
+        /// Index of the attachment in [`crate::Message::attachments`].
+        attachment: usize,
+    },
+}
+
+/// Byte offsets of one deferred part inside a rendered template.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeferredPart {
+    /// Index of the attachment in [`crate::Message::attachments`].
+    pub attachment: usize,
+    /// Start of the part's `--boundary` delimiter line. Removing
+    /// `start..end` drops the whole part.
+    pub start: usize,
+    /// Where the part's base64 body (76-character lines joined by CRLF, no
+    /// trailing CRLF) belongs; `body_start..end` is the CRLF that ends the part.
+    pub body_start: usize,
+    /// End of the part, which is also the start of the next delimiter line.
+    pub end: usize,
+}
+
+/// A rendered message whose deferred parts have empty bodies.
+#[derive(Debug, Clone)]
+pub struct Template {
+    pub bytes: Vec<u8>,
+    /// Deferred parts in output order.
+    pub parts: Vec<DeferredPart>,
 }
 
 /// A node in the MIME tree. Each node owns its own headers (already RFC 2047 / boundary
@@ -55,12 +85,20 @@ impl MimeNode {
 
     /// Serializes this node (and its subtree) into a full RFC 5322 / MIME byte stream.
     pub fn render(&self) -> Vec<u8> {
-        let mut out = Vec::new();
-        self.write(&mut out);
-        out
+        self.render_template().bytes
     }
 
-    fn write(&self, out: &mut Vec<u8>) {
+    /// Serializes this node like [`MimeNode::render`] and reports the offsets of every
+    /// deferred part. With every deferred body spliced in, the bytes are identical to
+    /// rendering the same tree with those bodies as base64 leaves.
+    pub fn render_template(&self) -> Template {
+        let mut bytes = Vec::new();
+        let mut parts = Vec::new();
+        self.write(&mut bytes, &mut parts);
+        Template { bytes, parts }
+    }
+
+    fn write(&self, out: &mut Vec<u8>, parts: &mut Vec<DeferredPart>) {
         for (name, value) in &self.headers {
             write_header_line(out, name, value);
         }
@@ -85,11 +123,31 @@ impl MimeNode {
                 }
                 out.extend_from_slice(b"\r\n");
             }
+            NodeContent::Deferred { attachment } => {
+                out.extend_from_slice(b"\r\n");
+                // `start` is filled in by the enclosing multipart, which owns the
+                // delimiter line. A deferred root has no delimiter to drop.
+                parts.push(DeferredPart {
+                    attachment: *attachment,
+                    start: 0,
+                    body_start: out.len(),
+                    end: 0,
+                });
+                out.extend_from_slice(b"\r\n");
+                parts.last_mut().expect("just pushed").end = out.len();
+            }
             NodeContent::Multipart { boundary, children } => {
                 out.extend_from_slice(b"\r\n");
                 for child in children {
+                    let start = out.len();
                     out.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
-                    child.write(out);
+                    child.write(out, parts);
+                    if let NodeContent::Deferred { .. } = child.content {
+                        parts
+                            .last_mut()
+                            .expect("deferred child records a part")
+                            .start = start;
+                    }
                 }
                 out.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
             }

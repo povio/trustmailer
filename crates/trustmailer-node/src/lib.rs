@@ -114,8 +114,9 @@ pub struct MailOptions {
     /// `info.messageId` behavior.
     pub message_id: Option<String>,
     pub attachments: Option<Vec<AttachmentInput>>,
-    /// Custom headers. Names must be printable ASCII tokens without colons.
-    pub headers: Option<std::collections::HashMap<String, String>>,
+    /// Custom headers, written in the object's key order. Names must be printable
+    /// ASCII tokens without colons.
+    pub headers: Option<indexmap::IndexMap<String, String>>,
 }
 
 #[napi(object)]
@@ -223,6 +224,59 @@ pub fn render_eml<'env>(env: &'env Env, options: MailOptions) -> Result<BufferSl
     let message = build_message(options)?;
     let raw = trustmailer_core::mime::build(&message, "localhost").map_err(to_napi_err)?;
     BufferSlice::copy_from(env, raw)
+}
+
+/// One deferred attachment part in a template from [`render_eml_template`].
+#[napi(object)]
+pub struct EmlTemplatePart {
+    /// Index into `options.attachments`.
+    pub attachment: u32,
+    /// Start of the part's `--boundary` line; `start..end` is the whole part.
+    pub start: u32,
+    /// Where the part's base64 body (76-character lines joined by CRLF) belongs.
+    pub body_start: u32,
+    /// End of the part, which is where the next boundary line starts.
+    pub end: u32,
+}
+
+fn offset(value: usize) -> Result<u32> {
+    u32::try_from(value)
+        .map_err(|_| napi::Error::new(Status::InvalidArg, "rendered template exceeds 4 GiB"))
+}
+
+/// Low-level helper for `renderEmlStream`: renders the draft like `renderEml`, except
+/// that the attachments at the `deferred` indices get empty bodies (their `content` is
+/// ignored), and returns `{ bytes, parts }` with the byte offsets of each deferred part
+/// in output order. Headers, boundaries and encoding all come from the same builder as
+/// `renderEml`.
+#[napi(ts_return_type = "{ bytes: Buffer; parts: Array<EmlTemplatePart> }")]
+pub fn render_eml_template<'env>(
+    env: &'env Env,
+    options: MailOptions,
+    deferred: Vec<u32>,
+) -> Result<Object<'env>> {
+    let message = build_message(options)?;
+    let deferred: Vec<usize> = deferred.into_iter().map(|i| i as usize).collect();
+    let template = trustmailer_core::mime::build_template(&message, "localhost", &deferred)
+        .map_err(to_napi_err)?;
+    drop(message);
+    let parts = template
+        .parts
+        .iter()
+        .map(|part| {
+            Ok(EmlTemplatePart {
+                attachment: offset(part.attachment)?,
+                start: offset(part.start)?,
+                body_start: offset(part.body_start)?,
+                end: offset(part.end)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let bytes = BufferSlice::copy_from(env, template.bytes)?;
+    let mut result = Object::new(env)?;
+    result.set("bytes", &bytes)?;
+    result.set("parts", parts)?;
+    Ok(result)
 }
 
 #[napi]
