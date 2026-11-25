@@ -301,5 +301,39 @@ const lazy = (file, open) => {
     assert.ok(log.includes('slow:cancel') && log.includes('ahead:destroyed'), log.join());
   }
 
+  // Cancelling while a Node.js Readable waits for data destroys it without hanging,
+  // and nothing opens after cancel.
+  {
+    const opened = [];
+    const stalled = new Readable({ read() {} });
+    const stream = await renderEmlStream({ attachments: [0, 1, 2].map((i) => ({
+      filename: `${i}.bin`,
+      open: async () => { opened.push(i); return i === 0 ? stalled : binary; },
+    })) });
+    const reader = stream.getReader();
+    await reader.read();
+    const read = reader.read();
+    await tick();
+    await Promise.race([reader.cancel(), tick().then(tick).then(() => { throw new Error('cancel hung'); })]);
+    assert.ok(stalled.destroyed);
+    await read;
+    await tick();
+    assert.deepEqual(opened, [0, 1]);
+  }
+  // A source error errors the output at once, even while the next open() is pending.
+  {
+    let openedAhead;
+    const stream = await renderEmlStream({ attachments: [
+      { filename: 'a.bin', open: async () => tracked([], 'a', [binary], { failAfter: 1 }) },
+      { filename: 'b.bin', open: () => new Promise((resolve) => { openedAhead = resolve; }) },
+    ] });
+    const done = assert.rejects(collect(stream), /a failed/);
+    await Promise.race([done, tick().then(tick).then(() => { throw new Error('error was delayed'); })]);
+    const log = [];
+    openedAhead(tracked(log, 'b', [binary]));
+    await tick();
+    assert.deepEqual(log, ['b:cancel'], 'a source opened after the error is cancelled');
+  }
+
   console.log('renderEmlStream equality, laziness, failure and cancellation tests passed');
 })().catch((e) => { console.error(e); process.exitCode = 1; });

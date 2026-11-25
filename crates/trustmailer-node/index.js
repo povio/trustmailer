@@ -17,7 +17,8 @@ const LINE_LENGTH = 76
 function encodeLines(bytes, leadingBreak) {
   const encoded = bytes.toString('base64')
   const lines = Math.ceil(encoded.length / LINE_LENGTH)
-  const out = Buffer.allocUnsafe(encoded.length + (lines - 1 + (leadingBreak ? 1 : 0)) * 2)
+  // Not from the shared pool: consumers may read or transfer `chunk.buffer`.
+  const out = Buffer.allocUnsafeSlow(encoded.length + (lines - 1 + (leadingBreak ? 1 : 0)) * 2)
   let offset = 0
   for (let i = 0; i < encoded.length; i += LINE_LENGTH) {
     if (i > 0 || leadingBreak) {
@@ -79,13 +80,15 @@ function toReader(source) {
       cancel: async () => {
         if (!finished) {
           finished = true
-          try {
-            if (typeof iterator.return === 'function') await iterator.return()
-          } finally {
-            // Returning an iterator that was never read does not run its cleanup, so
-            // a Node.js Readable opened ahead would stay open. Destroy it directly.
-            // No error argument: that would emit 'error' with no listener attached.
-            if (typeof source.destroy === 'function') source.destroy()
+          // Destroy a Node.js Readable directly: returning an iterator that was never
+          // read skips its cleanup, and an async generator queues return() behind a
+          // pending next(), so a stalled source would never close. No error argument:
+          // that would emit 'error' with no listener attached.
+          if (typeof source.destroy === 'function') source.destroy()
+          if (typeof iterator.return === 'function') {
+            Promise.resolve()
+              .then(() => iterator.return())
+              .catch(() => {})
           }
         }
       },
@@ -139,30 +142,37 @@ async function renderEmlStream(options) {
 
   // openings[i] is the pending open of parts[i]; it resolves to a reader or null.
   const openings = []
+  const readers = []
+  let cancelled = false
   const open = (i) => {
-    if (i >= parts.length) return undefined
+    if (i >= parts.length || (cancelled && !openings[i])) return undefined
     if (!openings[i]) {
       const opener = input.attachments[parts[i].attachment].open
       openings[i] = Promise.resolve()
         .then(() => opener())
-        .then((source) => (source == null ? null : toReader(source)))
+        .then((source) => {
+          const reader = source == null ? null : toReader(source)
+          readers[i] = reader
+          if (reader && cancelled) reader.cancel().catch(() => {})
+          return reader
+        })
       openings[i].catch(() => {})
     }
     return openings[i]
   }
-  const cancelOpened = (reason) =>
-    Promise.allSettled(
-      openings.map(async (opening) => {
-        const reader = await opening
-        if (reader) await reader.cancel(reason)
-      }),
-    )
+  // Cancels every source opened so far. Sources still opening are cancelled when
+  // they arrive instead of being awaited, so a slow open() cannot delay this.
+  const cancelOpened = (reason) => {
+    cancelled = true
+    return Promise.allSettled(readers.map((reader) => reader && reader.cancel(reason)))
+  }
 
   async function* chunks() {
     let offset = 0
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       const reader = await open(i)
+      if (cancelled) return
       open(i + 1)
       if (!reader) {
         if (part.start > offset) yield template.subarray(offset, part.start)
@@ -171,6 +181,7 @@ async function renderEmlStream(options) {
       }
       yield template.subarray(offset, part.bodyStart)
       yield* base64Body(reader)
+      if (cancelled) return
       offset = part.bodyStart
     }
     yield template.subarray(offset)
@@ -200,8 +211,8 @@ async function renderEmlStream(options) {
             }
           }
         } catch (error) {
-          await cancelOpened(error)
           controller.error(error)
+          cancelOpened(error)
         }
       },
       async cancel(reason) {
@@ -221,3 +232,4 @@ module.exports.createTransport = binding.createTransport
 module.exports.renderEml = binding.renderEml
 module.exports.renderEmlBase64 = binding.renderEmlBase64
 module.exports.renderEmlStream = renderEmlStream
+module.exports.renderEmlTemplate = binding.renderEmlTemplate
